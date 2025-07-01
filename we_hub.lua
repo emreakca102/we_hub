@@ -35,6 +35,12 @@ local function computeBounds(character)
     return minV, maxV
 end
 
+-- Helper: health-based color interpolation
+local function getHealthColor(healthPercent)
+    -- Green (0,1,0) to Red (1,0,0) based on health
+    return Color3.new(1 - healthPercent, healthPercent, 0)
+end
+
 -- GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name   = "ESPMenuGui"
@@ -52,36 +58,87 @@ menu.BorderSizePixel    = 0
 menu.Visible            = menuVisible
 menu.Parent             = screenGui
 
--- Title bar
+-- Mobil için ekranın sağ üstüne buton (Aç/Kapat)
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Size = UDim2.new(0, 60, 0, 30)
+toggleBtn.Position = UDim2.new(1, -70, 0, 10)
+toggleBtn.AnchorPoint = Vector2.new(0, 0)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 200)
+toggleBtn.TextColor3 = Color3.new(1,1,1)
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.Text = "Menü"
+toggleBtn.TextSize = 14
+toggleBtn.Parent = screenGui
+
+toggleBtn.MouseButton1Click:Connect(function()
+	menuVisible = not menuVisible
+	menu.Visible = menuVisible
+end)
+
+
+-- Title bar with gradient
 local titleBar = Instance.new("Frame", menu)
 titleBar.Name = "TitleBar"
 titleBar.Size = UDim2.new(1, 0, 0, 40)
 titleBar.Position = UDim2.new(0, 0, 0, 0)
-titleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+titleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
 titleBar.BorderSizePixel = 0
 titleBar.ZIndex = 2
 
-local title = Instance.new("TextLabel", titleBar)
-title.Size = UDim2.new(1, -40, 1, 0)
-title.Position = UDim2.new(0, 10, 0, 0)
-title.BackgroundTransparency = 1
-title.Text = "ESP MENÜSÜ"
-title.TextColor3 = Color3.fromRGB(200, 200, 255)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 20
-title.TextXAlignment = Enum.TextXAlignment.Left
+-- Gradient effect
+local gradient = Instance.new("UIGradient", titleBar)
+gradient.Rotation = 90
+gradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(60, 60, 70)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(40, 40, 50))
+})
 
--- Close button
+-- "WE HUB" Title with Shadow
+local title = Instance.new("TextLabel", titleBar)
+title.Size = UDim2.new(1, 0, 1, 0)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "WE HUB"
+title.TextColor3 = Color3.fromRGB(200, 220, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 22
+title.TextXAlignment = Enum.TextXAlignment.Center
+title.TextYAlignment = Enum.TextYAlignment.Center
+title.ZIndex = 5
+
+local shadow = Instance.new("TextLabel", titleBar)
+shadow.Size = UDim2.new(1, 0, 1, 0)
+shadow.Position = UDim2.new(0, 1, 0, 1)
+shadow.BackgroundTransparency = 1
+shadow.Text = "WE HUB"
+shadow.TextColor3 = Color3.new(0, 0, 0)
+shadow.Font = Enum.Font.GothamBold
+shadow.TextSize = 22
+shadow.TextTransparency = 0.5
+shadow.ZIndex = 4
+shadow.TextXAlignment = Enum.TextXAlignment.Center
+shadow.TextYAlignment = Enum.TextYAlignment.Center
+
+-- Close button with style
 local closeBtn = Instance.new("TextButton", titleBar)
+closeBtn.ZIndex = 10
 closeBtn.Size = UDim2.new(0, 30, 0, 30)
 closeBtn.Position = UDim2.new(1, -35, 0.5, -15)
-closeBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-closeBtn.Text = "×"
+closeBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+closeBtn.Text = "X"
 closeBtn.TextColor3 = Color3.new(1,1,1)
 closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 24
+closeBtn.TextSize = 20
 closeBtn.BorderSizePixel = 0
+closeBtn.AutoButtonColor = false
 
+-- Close button hover effects
+closeBtn.MouseEnter:Connect(function()
+    closeBtn.BackgroundColor3 = Color3.fromRGB(220, 80, 80)
+end)
+closeBtn.MouseLeave:Connect(function()
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 60, 60)
+end)
 closeBtn.MouseButton1Click:Connect(function()
     menuVisible = false
     menu.Visible = false
@@ -95,12 +152,12 @@ sidebar.Position = UDim2.new(0, 0, 0, 40)
 sidebar.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 sidebar.BackgroundTransparency = 0.2
 
--- ESP category button (now rectangular)
+-- ESP category button with color feedback
 local btnESPcat = Instance.new("TextButton", sidebar)
 btnESPcat.Name = "ESPCategory"
 btnESPcat.Size = UDim2.new(1, -10, 0, 40)
 btnESPcat.Position = UDim2.new(0, 5, 0, 10)
-btnESPcat.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+btnESPcat.BackgroundColor3 = ESP_Enabled and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(180, 60, 60)
 btnESPcat.BorderSizePixel = 0
 btnESPcat.Text = "ESP ▼"
 btnESPcat.TextColor3 = Color3.fromRGB(220,220,255)
@@ -108,12 +165,12 @@ btnESPcat.Font = Enum.Font.GothamBold
 btnESPcat.TextSize = 16
 btnESPcat.AutoButtonColor = false
 
--- Button factory for rectangular buttons
-local function newButton(text, sizeX, sizeY, pos, parent)
+-- Button factory for rectangular buttons with color feedback
+local function newButton(text, sizeX, sizeY, pos, parent, initialState)
     local btn = Instance.new("TextButton", parent)
     btn.Size = sizeX and UDim2.fromOffset(sizeX, sizeY) or UDim2.new(0, 260, 0, 36)
     btn.Position = pos
-    btn.BackgroundColor3 = Color3.fromRGB(40,40,50)
+    btn.BackgroundColor3 = initialState and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(180, 60, 60)
     btn.BorderSizePixel = 0
     btn.TextColor3 = Color3.fromRGB(220,220,255)
     btn.Font = Enum.Font.Gotham
@@ -122,13 +179,13 @@ local function newButton(text, sizeX, sizeY, pos, parent)
     btn.AutoButtonColor = false
     
     btn.MouseEnter:Connect(function() 
-        btn.BackgroundColor3 = Color3.fromRGB(60,60,70)
-        TweenService:Create(btn, TweenInfo.new(0.1), {TextColor3 = Color3.new(1,1,1)}):Play()
+        local currentState = btn.Text:find("Açık") ~= nil
+        btn.BackgroundColor3 = currentState and Color3.fromRGB(80, 200, 80) or Color3.fromRGB(200, 80, 80)
     end)
     
     btn.MouseLeave:Connect(function() 
-        btn.BackgroundColor3 = Color3.fromRGB(40,40,50) 
-        TweenService:Create(btn, TweenInfo.new(0.1), {TextColor3 = Color3.fromRGB(220,220,255)}):Play()
+        local currentState = btn.Text:find("Açık") ~= nil
+        btn.BackgroundColor3 = currentState and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(180, 60, 60)
     end)
     
     return btn
@@ -153,11 +210,11 @@ espTitle.Font = Enum.Font.GothamBold
 espTitle.TextSize = 18
 espTitle.TextXAlignment = Enum.TextXAlignment.Left
 
--- ESP toggles - now with rectangular buttons
-local btnToggleESP = newButton("ESP: Kapalı", nil, nil, UDim2.new(0,0,0,40), espPanel)
-local btnToggleName = newButton("İsimler: Açık", nil, nil, UDim2.new(0,0,0,90), espPanel)
-local btnToggleBox = newButton("Box: Açık", nil, nil, UDim2.new(0,0,0,140), espPanel)
-local btnToggleDH = newButton("Can+Uzaklık: Açık", nil, nil, UDim2.new(0,0,0,190), espPanel)
+-- ESP toggles with color feedback
+local btnToggleESP = newButton("ESP: Kapalı", nil, nil, UDim2.new(0,0,0,40), espPanel, false)
+local btnToggleName = newButton("İsimler: Açık", nil, nil, UDim2.new(0,0,0,90), espPanel, true)
+local btnToggleBox = newButton("Box: Açık", nil, nil, UDim2.new(0,0,0,140), espPanel, true)
+local btnToggleDH = newButton("Can+Uzaklık: Açık", nil, nil, UDim2.new(0,0,0,190), espPanel, true)
 
 -- Animate espPanel open/close
 local tweenInfo = TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
@@ -174,54 +231,37 @@ btnESPcat.MouseButton1Click:Connect(function()
     end
 end)
 
--- ESP toggle callbacks
+-- ESP toggle callbacks with color feedback
 btnToggleESP.MouseButton1Click:Connect(function()
     ESP_Enabled = not ESP_Enabled
     btnToggleESP.Text = "ESP: " .. (ESP_Enabled and "Açık" or "Kapalı")
-    btnToggleESP.BackgroundColor3 = ESP_Enabled and Color3.fromRGB(50, 80, 50) or Color3.fromRGB(40,40,50)
+    btnToggleESP.BackgroundColor3 = ESP_Enabled and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(180, 60, 60)
+    -- Update ESP category button color
+    btnESPcat.BackgroundColor3 = ESP_Enabled and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(180, 60, 60)
 end)
 
 btnToggleName.MouseButton1Click:Connect(function()
     ShowNames = not ShowNames
     btnToggleName.Text = "İsimler: " .. (ShowNames and "Açık" or "Kapalı")
-    btnToggleName.BackgroundColor3 = ShowNames and Color3.fromRGB(50, 80, 50) or Color3.fromRGB(40,40,50)
+    btnToggleName.BackgroundColor3 = ShowNames and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(180, 60, 60)
 end)
 
 btnToggleBox.MouseButton1Click:Connect(function()
     ShowBoxes = not ShowBoxes
     btnToggleBox.Text = "Box: " .. (ShowBoxes and "Açık" or "Kapalı")
-    btnToggleBox.BackgroundColor3 = ShowBoxes and Color3.fromRGB(50, 80, 50) or Color3.fromRGB(40,40,50)
+    btnToggleBox.BackgroundColor3 = ShowBoxes and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(180, 60, 60)
 end)
 
 btnToggleDH.MouseButton1Click:Connect(function()
     ShowDistanceHealth = not ShowDistanceHealth
     btnToggleDH.Text = "Can+Uzaklık: " .. (ShowDistanceHealth and "Açık" or "Kapalı")
-    btnToggleDH.BackgroundColor3 = ShowDistanceHealth and Color3.fromRGB(50, 80, 50) or Color3.fromRGB(40,40,50)
+    btnToggleDH.BackgroundColor3 = ShowDistanceHealth and Color3.fromRGB(60, 180, 60) or Color3.fromRGB(180, 60, 60)
 end)
-
--- Set initial button states
-btnToggleName.BackgroundColor3 = Color3.fromRGB(50, 80, 50)
-btnToggleBox.BackgroundColor3 = Color3.fromRGB(50, 80, 50)
-btnToggleDH.BackgroundColor3 = Color3.fromRGB(50, 80, 50)
 
 -- Draggable menu
 local dragging
 local dragStart
 local startPos
-
-titleBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true
-        dragStart = input.Position
-        startPos = menu.Position
-        
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
 
 titleBar.InputChanged:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseMovement then
@@ -229,15 +269,44 @@ titleBar.InputChanged:Connect(function(input)
     end
 end)
 
-UserInput.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
+local dragging = false
+local dragStart, startPos
+
+-- Dokunma ve fare desteği ile taşıma
+local function startDrag(input)
+    dragging = true
+    dragStart = input.Position
+    startPos = menu.Position
+
+    input.Changed:Connect(function()
+        if input.UserInputState == Enum.UserInputState.End then
+            dragging = false
+        end
+    end)
+end
+
+local function updateDrag(input)
+    if dragging then
         local delta = input.Position - dragStart
         menu.Position = UDim2.new(
-            startPos.X.Scale, 
-            startPos.X.Offset + delta.X, 
-            startPos.Y.Scale, 
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
             startPos.Y.Offset + delta.Y
         )
+    end
+end
+
+-- Tüm input türlerini dinle
+titleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        startDrag(input)
+    end
+end)
+
+titleBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        updateDrag(input)
     end
 end)
 
@@ -250,7 +319,7 @@ UserInput.InputBegan:Connect(function(input, gp)
     end
 end)
 
--- ESP rendering loop (unchanged)
+-- ESP rendering loop with health-based coloring
 RunService.RenderStepped:Connect(function()
     if not ESP_Enabled then
         -- Cleanup
@@ -260,10 +329,10 @@ RunService.RenderStepped:Connect(function()
         end
         for _, pl in ipairs(Players:GetPlayers()) do
             if pl.Character then
-                local hrp = pl.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    if hrp:FindFirstChild("ESP_Name") then hrp.ESP_Name:Destroy() end
-                    if hrp:FindFirstChild("ESP_DH") then hrp.ESP_DH:Destroy() end
+                local head = pl.Character:FindFirstChild("Head")
+                if head then
+                    if head:FindFirstChild("ESP_Name") then head.ESP_Name:Destroy() end
+                    if head:FindFirstChild("ESP_DH") then head.ESP_DH:Destroy() end
                 end
             end
         end
@@ -271,21 +340,28 @@ RunService.RenderStepped:Connect(function()
     end
 
     local lpChar = localPlayer.Character
-    if not lpChar or not lpChar:FindFirstChild("HumanoidRootPart") then return end
+    if not lpChar then return end
+
+    local lpHead = lpChar:FindFirstChild("Head")
+    if not lpHead then return end
 
     for _, pl in ipairs(Players:GetPlayers()) do
         if pl ~= localPlayer and pl.Character then
             local char = pl.Character
-            local hrp  = char:FindFirstChild("HumanoidRootPart")
-            if not hrp then continue end
+            local head = char:FindFirstChild("Head")
+            if not head then continue end
 
-            -- BOX
+            -- Calculate distance
+            local distance = (head.Position - lpHead.Position).Magnitude
+
+            -- BOX with health-based coloring
             if ShowBoxes then
                 local part = boxParts[pl]
                 local minV, maxV = computeBounds(char)
                 if minV and maxV then
                     local size = maxV - minV + Vector3.new(0.2,0.2,0.2)
                     local cf   = CFrame.new((minV+maxV)/2)
+                    
                     if not part or not part.Parent then
                         part = Instance.new("Part")
                         part.Name         = "ESP_BoxPart"
@@ -299,12 +375,27 @@ RunService.RenderStepped:Connect(function()
                         adorn.AlwaysOnTop  = true
                         adorn.ZIndex       = 5
                         adorn.Transparency = 0.5
-                        adorn.Color3       = Color3.new(1,0,0)
                         boxParts[pl] = part
                     end
+                    
+                    -- Update box size and position
                     part.Size   = size
                     part.CFrame = cf
-                    part:FindFirstChild("ESP_Box").Size = size
+                    
+                    -- Update box color based on health
+                    local adorn = part:FindFirstChild("ESP_Box")
+                    if adorn then
+                        adorn.Size = size
+                        
+                        -- Get health percentage
+                        local hum = char:FindFirstChildOfClass("Humanoid")
+                        if hum then
+                            local healthPercent = math.clamp(hum.Health / hum.MaxHealth, 0, 1)
+                            adorn.Color3 = getHealthColor(healthPercent)
+                        else
+                            adorn.Color3 = Color3.new(1, 0, 0) -- Red if no humanoid
+                        end
+                    end
                 end
             else
                 if boxParts[pl] then
@@ -315,12 +406,12 @@ RunService.RenderStepped:Connect(function()
 
             -- NAME
             if ShowNames then
-                if not hrp:FindFirstChild("ESP_Name") then
-                    local gui = Instance.new("BillboardGui", hrp)
+                if not head:FindFirstChild("ESP_Name") then
+                    local gui = Instance.new("BillboardGui", head)
                     gui.Name        = "ESP_Name"
-                    gui.Adornee     = hrp
+                    gui.Adornee     = head
                     gui.Size        = UDim2.new(0,100,0,25)
-                    gui.StudsOffset = Vector3.new(0,3,0)
+                    gui.StudsOffset = Vector3.new(0,2,0)
                     gui.AlwaysOnTop = true
                     local lbl = Instance.new("TextLabel", gui)
                     lbl.Size              = UDim2.new(1,0,1,0)
@@ -331,17 +422,17 @@ RunService.RenderStepped:Connect(function()
                     lbl.TextSize          = 16
                 end
             else
-                if hrp:FindFirstChild("ESP_Name") then hrp.ESP_Name:Destroy() end
+                if head:FindFirstChild("ESP_Name") then head.ESP_Name:Destroy() end
             end
 
             -- DIST+HEALTH
             if ShowDistanceHealth then
-                if not hrp:FindFirstChild("ESP_DH") then
-                    local gui = Instance.new("BillboardGui", hrp)
+                if not head:FindFirstChild("ESP_DH") then
+                    local gui = Instance.new("BillboardGui", head)
                     gui.Name        = "ESP_DH"
-                    gui.Adornee     = hrp
+                    gui.Adornee     = head
                     gui.Size        = UDim2.new(0,100,0,30)
-                    gui.StudsOffset = Vector3.new(0,1,0)
+                    gui.StudsOffset = Vector3.new(0,0,0)
                     gui.AlwaysOnTop = true
                     local lbl = Instance.new("TextLabel", gui)
                     lbl.Size              = UDim2.new(1,0,1,0)
@@ -350,14 +441,14 @@ RunService.RenderStepped:Connect(function()
                     lbl.TextSize          = 14
                     lbl.TextColor3        = Color3.new(1,1,0)
                 end
-                local gui = hrp:FindFirstChild("ESP_DH")
+                local gui = head:FindFirstChild("ESP_DH")
                 local lbl = gui:FindFirstChildOfClass("TextLabel")
-                local dist = (hrp.Position - lpChar.HumanoidRootPart.Position).Magnitude
+                local dist = distance
                 local hum  = char:FindFirstChildOfClass("Humanoid")
                 local hp   = hum and math.floor(hum.Health) or 0
                 lbl.Text = string.format("U: %d  H: %d", math.floor(dist), hp)
             else
-                if hrp:FindFirstChild("ESP_DH") then hrp.ESP_DH:Destroy() end
+                if head:FindFirstChild("ESP_DH") then head.ESP_DH:Destroy() end
             end
         end
     end
