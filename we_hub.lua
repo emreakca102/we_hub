@@ -43,7 +43,9 @@ end
 
 -- GUI
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name   = "ESPMenuGui"
+screenGui.Name = "ESPMenuGui"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
 screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
 
 -- Main menu frame
