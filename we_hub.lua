@@ -63,8 +63,8 @@ menu.Parent             = screenGui
 -- Mobil için ekranın sağ üstüne buton (Aç/Kapat)
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Size = UDim2.new(0, 60, 0, 30)
-toggleBtn.Position = UDim2.new(1, -80, 0, 10)
-toggleBtn.AnchorPoint = Vector2.new(1, 0) -- Sağ üst köşeye hizalanır
+toggleBtn.Position = UDim2.new(1, -80, 0, 50) -- 10'dan 50'ye çektik
+toggleBtn.AnchorPoint = Vector2.new(1, 0)
 toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 200)
 toggleBtn.TextColor3 = Color3.new(1,1,1)
 toggleBtn.Font = Enum.Font.GothamBold
