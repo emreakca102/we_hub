@@ -63,8 +63,8 @@ menu.Parent             = screenGui
 -- Mobil için ekranın sağ üstüne buton (Aç/Kapat)
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Size = UDim2.new(0, 60, 0, 30)
-toggleBtn.Position = UDim2.new(1, -80, 0, 50) -- 10'dan 50'ye çektik
-toggleBtn.AnchorPoint = Vector2.new(1, 0)
+toggleBtn.Position = UDim2.new(1, -80, 0, 10)
+toggleBtn.AnchorPoint = Vector2.new(1, 0) -- Sağ üst köşeye hizalanır
 toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 200)
 toggleBtn.TextColor3 = Color3.new(1,1,1)
 toggleBtn.Font = Enum.Font.GothamBold
@@ -72,11 +72,65 @@ toggleBtn.Text = "Menü"
 toggleBtn.TextSize = 14
 toggleBtn.Parent = screenGui
 
-toggleBtn.MouseButton1Click:Connect(function()
-	menuVisible = not menuVisible
-	menu.Visible = menuVisible
+local wasDragged = false
+
+toggleBtn.MouseButton1Down:Connect(function()
+    wasDragged = false
 end)
 
+toggleBtn.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        wasDragged = true
+    end
+end)
+
+toggleBtn.MouseButton1Click:Connect(function()
+    if wasDragged then
+        wasDragged = false
+        return
+    end
+    menuVisible = not menuVisible
+    menu.Visible = menuVisible
+end)
+
+local draggingToggle = false
+local dragStartPos
+local toggleStartPos
+
+local function startToggleDrag(input)
+    draggingToggle = true
+    dragStartPos = input.Position
+    toggleStartPos = toggleBtn.Position
+
+    input.Changed:Connect(function()
+        if input.UserInputState == Enum.UserInputState.End then
+            draggingToggle = false
+        end
+    end)
+end
+
+local function updateToggleDrag(input)
+    if not draggingToggle then return end
+    local delta = input.Position - dragStartPos
+    toggleBtn.Position = UDim2.new(
+        toggleStartPos.X.Scale,
+        toggleStartPos.X.Offset + delta.X,
+        toggleStartPos.Y.Scale,
+        toggleStartPos.Y.Offset + delta.Y
+    )
+end
+
+toggleBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        startToggleDrag(input)
+    end
+end)
+
+toggleBtn.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        updateToggleDrag(input)
+    end
+end)
 
 -- Title bar with gradient
 local titleBar = Instance.new("Frame", menu)
