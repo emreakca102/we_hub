@@ -44,8 +44,8 @@ end
 -- GUI
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "ESPMenuGui"
-screenGui.ResetOnSpawn = false
-screenGui.IgnoreGuiInset = true
+screenGui.ResetOnSpawn = false -- oyuncu yeniden doğunca silinmesin
+screenGui.IgnoreGuiInset = true -- üst barları (mobilde çentik, sağ üst ikonlar vs.) yok say
 screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
 
 -- Main menu frame
@@ -63,8 +63,8 @@ menu.Parent             = screenGui
 -- Mobil için ekranın sağ üstüne buton (Aç/Kapat)
 local toggleBtn = Instance.new("TextButton")
 toggleBtn.Size = UDim2.new(0, 60, 0, 30)
-toggleBtn.Position = UDim2.new(1, -70, 0, 10)
-toggleBtn.AnchorPoint = Vector2.new(0, 0)
+toggleBtn.Position = UDim2.new(1, -80, 0, 10)
+toggleBtn.AnchorPoint = Vector2.new(1, 0) -- Sağ üst köşeye hizalanır
 toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 120, 200)
 toggleBtn.TextColor3 = Color3.new(1,1,1)
 toggleBtn.Font = Enum.Font.GothamBold
